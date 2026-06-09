@@ -36,6 +36,13 @@ function Dashboard() {
     loadIncidents();
   }, []);
 
+  const filteredIncidents =
+    active === "water"
+      ? incidents.filter((i) => i.type === "water")
+      : active === "power"
+        ? incidents.filter((i) => i.type === "power")
+        : incidents;
+
   return (
     <div className="h-screen flex">
       <Sidebar
@@ -53,7 +60,7 @@ function Dashboard() {
 
         <div className="flex-1 relative">
           <MapView
-            incidents={incidents}
+            incidents={filteredIncidents}
             language={language}
             onSelect={(incident) => {
               const reportsCount = Number((incident as any)?.reportCount ?? 0);
@@ -69,7 +76,7 @@ function Dashboard() {
       </div>
 
       <AnalyticsPanel
-        incidents={incidents}
+        incidents={filteredIncidents}
         selectedRisk={selectedRisk}
         language={language}
       />

@@ -52,17 +52,40 @@ export function Header({
   setLanguage: (lang: "ru" | "kz") => void;
 }) {
   const now = useClock();
+  const t = language === "ru"
+    ? {
+        title: "КАСКЕЛЕН · ГОРОДСКОЙ ЦЕНТР УПРАВЛЕНИЯ",
+        search: "Поиск по категории, пользователю или ID...",
+        incidents: "Активные инциденты",
+        weather: "Погода",
+        weatherValue: "4°C · Дождь",
+        threat: "Уровень угрозы",
+        threatValue: "ПОВЫШЕН",
+        telemetry: "Телеметрия",
+        telemetryValue: "НОРМА",
+      }
+    : {
+        title: "ҚАСКЕЛЕҢ · ҚАЛАЛЫҚ БАСҚАРУ ОРТАЛЫҒЫ",
+        search: "Санат, пайдаланушы немесе ID бойынша іздеу...",
+        incidents: "Белсенді инциденттер",
+        weather: "Ауа райы",
+        weatherValue: "4°C · Жаңбыр",
+        threat: "Қауіп деңгейі",
+        threatValue: "ЖОҒАРЫ",
+        telemetry: "Телеметрия",
+        telemetryValue: "ҚАЛЫПТЫ",
+      };
   return (
     <header className="h-12 shrink-0 border-b border-border bg-card/60 backdrop-blur flex items-center px-3 gap-3 z-30 relative">
       <div className="flex items-center gap-2">
         <span className="size-2 rounded-full bg-success animate-pulse" />
-        <h1 className="text-xs font-semibold tracking-wide whitespace-nowrap">ҚАСКЕЛЕҢ · ҚАЛАЛЫҚ БАСҚАРУ ОРТАЛЫҒЫ</h1>
+        <h1 className="text-xs font-semibold tracking-wide whitespace-nowrap">{t.title}</h1>
       </div>
 
       <div className="hidden lg:flex items-center flex-1 max-w-sm mx-2 px-3 h-8 rounded-md bg-background/60 border border-border focus-within:border-primary/60 transition-colors">
         <Search className="size-4 text-muted-foreground" />
         <input
-          placeholder="Санат, пайдаланушы немесе ID бойынша іздеу..."
+          placeholder={t.search}
           className="flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground"
         />
         <span className="text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">
@@ -89,7 +112,7 @@ export function Header({
 
         <Stat
           icon={Activity}
-          label="Инциденты"
+          label={t.incidents}
           value={String(totalActive)}
           tone="warning"
         />
@@ -113,13 +136,13 @@ export function Header({
         </div>
         <Stat
           icon={Activity}
-          label="Активные инциденты"
+          label={t.incidents}
           value={String(totalActive)}
           tone="warning"
         />
-        <Stat icon={CloudRain} label="Погода" value="4°C · Дождь" tone="default" />
-        <Stat icon={AlertTriangle} label="Уровень угрозы" value="ПОВЫШЕН" tone="danger" />
-        <Stat icon={Wifi} label="Телеметрия" value="НОРМА" tone="success" />
+        <Stat icon={CloudRain} label={t.weather} value={t.weatherValue} tone="default" />
+        <Stat icon={AlertTriangle} label={t.threat} value={t.threatValue} tone="danger" />
+        <Stat icon={Wifi} label={t.telemetry} value={t.telemetryValue} tone="success" />
         <div className="px-2 py-1 rounded-md bg-card/60 border border-border font-mono text-[11px] tabular-nums">
           {now.toLocaleTimeString("en-GB")}
         </div>
