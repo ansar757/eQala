@@ -80,15 +80,13 @@ export function MapView({ incidents, language, onSelect }: Props) {
       const powerIncidents = incidents.filter((i) => i.type === "power");
 
       const calculateRiskScore = (count: number) => {
-        if (count <= 1) return 15;
-        if (count === 2) return 30;
-        if (count === 3) return 50;
-        if (count === 4) return 70;
-        if (count === 5) return 85;
+        if (count < 10) return 0;
+        if (count < 15) return 70;
+        if (count < 20) return 85;
         return 100;
       };
 
-      if (powerIncidents.length >= 3) {
+      if (powerIncidents.length >= 10) {
         let hotspotGroup: typeof powerIncidents = [];
         let hotspotCount = 0;
 
@@ -105,7 +103,7 @@ export function MapView({ incidents, language, onSelect }: Props) {
           }
         });
 
-        if (hotspotCount >= 3) {
+        if (hotspotCount >= 10) {
           const centerLat =
             hotspotGroup.reduce((sum, item) => sum + item.latitude, 0) /
             hotspotGroup.length;
