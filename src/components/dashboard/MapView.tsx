@@ -6,6 +6,7 @@ interface Props {
   incidents: Incident[];
   language: "ru" | "kz";
   onSelect?: (i: Incident) => void;
+  viewMode?: "incidents" | "risk";
 }
 
 function escapeHtml(value: string) {
@@ -21,7 +22,7 @@ function escapeHtml(value: string) {
   });
 }
 
-export function MapView({ incidents, language, onSelect }: Props) {
+export function MapView({ incidents, language, onSelect, viewMode = "incidents" }: Props) {
   const t = language === "ru"
     ? {
         citizenReport: "Обращение гражданина",
@@ -77,103 +78,162 @@ export function MapView({ incidents, language, onSelect }: Props) {
       markersLayer = leaflet.layerGroup().addTo(map);
       markersRef.current = markersLayer;
 
-      const powerIncidents = incidents.filter((i) => i.type === "power");
+      const showRiskZones = viewMode === "risk";
 
-      const calculateRiskScore = (count: number) => {
-        if (count < 10) return 0;
-        if (count < 15) return 70;
-        if (count < 20) return 85;
-        return 100;
+      const getDistanceMeters = (
+        lat1: number,
+        lon1: number,
+        lat2: number,
+        lon2: number,
+      ) => {
+        const R = 6371000;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+
+        return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       };
 
-      if (powerIncidents.length >= 10) {
-        let hotspotGroup: typeof powerIncidents = [];
-        let hotspotCount = 0;
+      if (showRiskZones && incidents.length >= 2) {
+        const processedIndexes = new Set<number>();
 
-        powerIncidents.forEach((candidate) => {
-          const nearby = powerIncidents.filter((other) => {
-            const latDiff = Math.abs(candidate.latitude - other.latitude);
-            const lonDiff = Math.abs(candidate.longitude - other.longitude);
-            return latDiff < 0.01 && lonDiff < 0.01;
+        incidents.forEach((candidate, index) => {
+          if (processedIndexes.has(index)) {
+            return;
+          }
+
+          const nearby = incidents.filter((other, otherIndex) => {
+            return (
+              getDistanceMeters(
+                candidate.latitude,
+                candidate.longitude,
+                other.latitude,
+                other.longitude,
+              ) <= 300
+            );
           });
 
-          if (nearby.length > hotspotCount) {
-            hotspotCount = nearby.length;
-            hotspotGroup = nearby;
+          if (nearby.length < 3) {
+            return;
           }
-        });
 
-        if (hotspotCount >= 10) {
+          nearby.forEach((_, idx) => {
+            const originalIndex = incidents.indexOf(nearby[idx]);
+            if (originalIndex !== -1) {
+              processedIndexes.add(originalIndex);
+            }
+          });
+
           const centerLat =
-            hotspotGroup.reduce((sum, item) => sum + item.latitude, 0) /
-            hotspotGroup.length;
+            nearby.reduce((sum, item) => sum + item.latitude, 0) /
+            nearby.length;
 
           const centerLng =
-            hotspotGroup.reduce((sum, item) => sum + item.longitude, 0) /
-            hotspotGroup.length;
+            nearby.reduce((sum, item) => sum + item.longitude, 0) /
+            nearby.length;
 
-          const hotspot = {
-            ...hotspotGroup[0],
-            latitude: centerLat,
-            longitude: centerLng,
-            riskScore: calculateRiskScore(hotspotCount),
-            reportCount: hotspotCount,
-          };
+          const powerCount = nearby.filter(i => i.type === "power").length;
+          const waterCount = nearby.filter(i => i.type === "water").length;
+          const hotspotCount = nearby.length;
 
-          const riskCircle = leaflet.circle([hotspot.latitude, hotspot.longitude], {
-            radius: 1200,
-            color: "#ff3b30",
+          let color = "";
+          let label = "";
+          let riskScore = 0;
+
+          if (hotspotCount >= 6) {
+            color = "#ff3b30";
+            label = language === "ru" ? "HIGH RISK ZONE" : "ЖОҒАРЫ ҚАУІП АЙМАҒЫ";
+            riskScore = 90;
+          } else if (hotspotCount >= 3) {
+            color = "#ffcc00";
+            label = language === "ru" ? "MEDIUM RISK" : "ОРТАША ҚАУІП";
+            riskScore = 60;
+          } else {
+            return;
+          }
+
+          const riskCircle = leaflet.circle([centerLat, centerLng], {
+            radius: 300,
+            color,
             weight: 2,
-            fillColor: "#ff3b30",
-            fillOpacity: 0.18,
+            fillColor: color,
+            fillOpacity: 0.28,
           }).addTo(map);
 
-          leaflet.circle([hotspot.latitude, hotspot.longitude], {
-            radius: 2200,
-            color: "#ff3b30",
+          leaflet.circle([centerLat, centerLng], {
+            radius: 600,
+            color,
             weight: 1,
-            fillColor: "#ff3b30",
-            fillOpacity: 0.06,
+            fillColor: color,
+            fillOpacity: 0.12,
+          }).addTo(map);
+
+          leaflet.marker([centerLat, centerLng], {
+            icon: leaflet.divIcon({
+              className: "",
+              iconSize: [80, 80],
+              iconAnchor: [40, 40],
+              html: `
+                <div style="
+                  width:80px;
+                  height:80px;
+                  border-radius:50%;
+                  border:3px solid ${color};
+                  position:relative;
+                  animation:eq-hotspot-pulse 2s infinite;
+                  box-shadow:0 0 20px ${color};
+                "></div>
+              `,
+            }),
+            interactive: false,
           }).addTo(map);
 
           riskCircle.bindPopup(`
 <div style="min-width:240px">
-  <div style="color:#ff4d4d;font-weight:700;margin-bottom:8px">
+  <div style="color:${color};font-weight:700;margin-bottom:8px">
     ${language === "ru" ? "AI АНАЛИЗ УГРОЗ" : "AI ҚАУІП ТАЛДАУЫ"}
   </div>
-  <div>${language === "ru" ? "Оценка риска" : "Тәуекел көрсеткіші"}: ${calculateRiskScore(hotspotCount)}</div>
-  <div>${language === "ru" ? "Обращений" : "Өтініштер"}: ${hotspotCount}</div>
-  <div>${language === "ru" ? "Критичность" : "Қауіп деңгейі"}: ${language === "ru" ? "Критическая" : "Критикалық"}</div>
-  <div style="margin-top:8px">
-    ${language === "ru"
-      ? "Обнаружено несколько сообщений об отключении электроснабжения в одной зоне."
-      : "Бір аймақта электр қуатының өшуі туралы бірнеше хабарлама анықталды."}
-  </div>
+  <div>${language === "ru" ? "Всего обращений" : "Барлық өтініштер"}: ${hotspotCount}</div>
+  <div>${language === "ru" ? "⚡ Электроснабжение" : "⚡ Электрмен жабдықтау"}: ${powerCount}</div>
+  <div>${language === "ru" ? "💧 Водоснабжение" : "💧 Су жабдықтау"}: ${waterCount}</div>
+  <div>AI Risk Score: ${riskScore}%</div>
+  <div>${language === "ru" ? "Кластер обращений обнаружен" : "Өтініштер кластері анықталды"}</div>
 </div>
 `);
 
           riskCircle.on("click", () => {
             if (onSelect) {
               onSelect({
-                ...hotspot,
-                riskScore: calculateRiskScore(hotspotCount),
+                ...nearby[0],
+                latitude: centerLat,
+                longitude: centerLng,
                 reportCount: hotspotCount,
+                riskScore,
               } as Incident);
             }
           });
 
-          const riskMarker = leaflet.marker([hotspot.latitude, hotspot.longitude], {
+          const riskMarker = leaflet.marker([centerLat, centerLng], {
             icon: leaflet.divIcon({
               className: "",
               html: `
                 <div style="
-                  color:#ff4d4d;
-                  font-size:12px;
+                  display:flex;
+                  flex-direction:column;
+                  align-items:center;
+                  gap:0;
+                  color:${color};
                   font-weight:700;
-                  text-shadow:0 0 12px #ff4d4d;
+                  text-shadow:0 0 12px ${color};
                   white-space:nowrap;
                 ">
-                  ${t.highRiskZone}
+                  <div style="font-size:12px;">${label}</div>
                 </div>
               `,
             }),
@@ -182,52 +242,55 @@ export function MapView({ incidents, language, onSelect }: Props) {
           riskMarker.on("click", () => {
             if (onSelect) {
               onSelect({
-                ...hotspot,
-                riskScore: calculateRiskScore(hotspotCount),
+                ...nearby[0],
+                latitude: centerLat,
+                longitude: centerLng,
                 reportCount: hotspotCount,
+                riskScore,
               } as Incident);
             }
           });
-        }
+        });
       }
 
-      incidents.forEach((incident) => {
-        const meta = INCIDENT_META[incident.type as IncidentType];
-        const categoryLabel =
-          incident.type === "power"
-            ? language === "ru"
-              ? "Электросети"
-              : "Электр желісі"
-            : language === "ru"
-              ? "Водоснабжение"
-              : "Су жүйесі";
+      if (viewMode === "incidents") {
+        incidents.forEach((incident) => {
+          const meta = INCIDENT_META[incident.type as IncidentType];
+          const categoryLabel =
+            incident.type === "power"
+              ? language === "ru"
+                ? "Электросети"
+                : "Электр желісі"
+              : language === "ru"
+                ? "Водоснабжение"
+                : "Су жүйесі";
 
-        const statusLabel = language === "ru" ? "Новый" : "Жаңа";
+          const statusLabel = language === "ru" ? "Новый" : "Жаңа";
 
-        const createdLabel = new Date(incident.createdAt).toLocaleString(
-          language === "ru" ? "ru-RU" : "kk-KZ",
-          {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          },
-        );
+          const createdLabel = new Date(incident.createdAt).toLocaleString(
+            language === "ru" ? "ru-RU" : "kk-KZ",
+            {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            },
+          );
 
-        const icon = leaflet.divIcon({
-          className: "",
-          iconSize: [26, 34],
-          iconAnchor: [13, 34],
-          popupAnchor: [0, -30],
-          html: `
-            <div class="eq-marker-pin eq-marker-pulse" style="--marker-color:${meta.color}">
-              <span></span>
-            </div>
-          `,
-        });
-        const marker = leaflet.marker([incident.latitude, incident.longitude], { icon });
-        marker.bindPopup(`
+          const icon = leaflet.divIcon({
+            className: "",
+            iconSize: [26, 34],
+            iconAnchor: [13, 34],
+            popupAnchor: [0, -30],
+            html: `
+              <div class="eq-marker-pin eq-marker-pulse" style="--marker-color:${meta.color}">
+                <span></span>
+              </div>
+            `,
+          });
+          const marker = leaflet.marker([incident.latitude, incident.longitude], { icon });
+          marker.bindPopup(`
 <div style="min-width:220px">
   <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:${meta.color}">
     ${t.citizenReport}
@@ -241,13 +304,14 @@ export function MapView({ incidents, language, onSelect }: Props) {
   </div>
 </div>
 `);
-        marker.on("click", () => {
-          if (onSelect) {
-            onSelect(null as unknown as Incident);
-          }
+          marker.on("click", () => {
+            if (onSelect) {
+              onSelect(null as unknown as Incident);
+            }
+          });
+          marker.addTo(markersLayer);
         });
-        marker.addTo(markersLayer);
-      });
+      }
 
       if (incidents.length > 0) {
         const bounds = leaflet.latLngBounds(
@@ -276,7 +340,18 @@ export function MapView({ incidents, language, onSelect }: Props) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incidents]);
+  }, [incidents, viewMode]);
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  return (
+    <>
+      <style>{`
+        @keyframes eq-hotspot-pulse {
+          0% { transform: scale(0.8); opacity: 0.9; }
+          70% { transform: scale(1.4); opacity: 0; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }
+      `}</style>
+      <div ref={containerRef} className="w-full h-full" />
+    </>
+  );
 }

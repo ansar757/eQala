@@ -41,6 +41,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          created_at: string;
+          user_id: number;
+          category: string;
+          message: string;
+          sent: boolean;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          user_id: number;
+          category: string;
+          message: string;
+          sent?: boolean;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          user_id?: number;
+          category?: string;
+          message?: string;
+          sent?: boolean;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

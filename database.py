@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import os
 import random
 from dataclasses import dataclass
@@ -105,7 +106,14 @@ class SupabaseIncidentDatabase:
             self._client = None
             logger.info("Supabase database client closed successfully.")
 
-    async def insert_incident_report(self, user_id: int, category: str, lat: float, lon: float) -> bool:
+    async def insert_incident_report(
+        self,
+        user_id: int,
+        category: str,
+        lat: float,
+        lon: float,
+        description: str | None = None,
+    ) -> bool:
         """Insert one incident report into Supabase.
 
         The database stores Telegram user id, category, and coordinates as
@@ -127,7 +135,7 @@ class SupabaseIncidentDatabase:
         payload: dict[str, Any] = {
             "user_id": int(user_id),
             "category": category.strip(),
-            "description": None,
+            "description": description.strip() if description else None,
             "lat": float(lat),
             "lon": float(lon),
             "status": "new",
@@ -144,9 +152,10 @@ class SupabaseIncidentDatabase:
 
                 if 200 <= response.status_code < 300:
                     logger.info(
-                        "Incident report inserted: user_id=%s category=%s lat=%s lon=%s.",
+                        "Incident report inserted: user_id=%s category=%s description=%s lat=%s lon=%s.",
                         user_id,
                         category,
+                        description,
                         lat,
                         lon,
                     )
@@ -186,6 +195,87 @@ class SupabaseIncidentDatabase:
 
         logger.error("Supabase insert exhausted retries: user_id=%s category=%s.", user_id, category)
         return False
+
+    async def count_incidents_by_category(
+        self,
+        category: str,
+        center_lat: float,
+        center_lon: float,
+        radius_meters: float = 300.0,
+    ) -> int:
+        """Count incidents of the same category within a radius."""
+
+        try:
+            client = await self._get_client()
+            response = await client.get(
+                f"/{INCIDENTS_TABLE}",
+                params={
+                    "select": "lat,lon",
+                    "category": f"eq.{category}",
+                },
+            )
+
+            if not (200 <= response.status_code < 300):
+                logger.warning(
+                    "Failed to count nearby incidents for category=%s status=%s",
+                    category,
+                    response.status_code,
+                )
+                return 0
+
+            data = response.json()
+            if not isinstance(data, list):
+                return 0
+
+            count = 0
+
+            for incident in data:
+                lat = incident.get("lat")
+                lon = incident.get("lon")
+
+                if lat is None or lon is None:
+                    continue
+
+                distance = self._haversine_meters(
+                    center_lat,
+                    center_lon,
+                    float(lat),
+                    float(lon),
+                )
+
+                if distance <= radius_meters:
+                    count += 1
+
+            return count
+
+        except Exception:
+            logger.exception("Failed to count nearby incidents for category=%s", category)
+            return 0
+
+    def _haversine_meters(
+        self,
+        lat1: float,
+        lon1: float,
+        lat2: float,
+        lon2: float,
+    ) -> float:
+        earth_radius = 6371000.0
+
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        delta_phi = math.radians(lat2 - lat1)
+        delta_lambda = math.radians(lon2 - lon1)
+
+        a = (
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1)
+            * math.cos(phi2)
+            * math.sin(delta_lambda / 2) ** 2
+        )
+
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+        return earth_radius * c
 
     async def _healthcheck(self) -> None:
         for attempt in range(1, self._max_retries + 1):

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, CloudRain, Search, Wifi } from "lucide-react";
+import { Activity, Search, Wifi } from "lucide-react";
 
 function useClock() {
   const [now, setNow] = useState(new Date());
@@ -57,23 +57,15 @@ export function Header({
         title: "КАСКЕЛЕН · ГОРОДСКОЙ ЦЕНТР УПРАВЛЕНИЯ",
         search: "Поиск по категории, пользователю или ID...",
         incidents: "Активные инциденты",
-        weather: "Погода",
-        weatherValue: "4°C · Дождь",
-        threat: "Уровень угрозы",
-        threatValue: "ПОВЫШЕН",
-        telemetry: "Телеметрия",
-        telemetryValue: "НОРМА",
+        system: "Система",
+        systemValue: "ОНЛАЙН",
       }
     : {
         title: "ҚАСКЕЛЕҢ · ҚАЛАЛЫҚ БАСҚАРУ ОРТАЛЫҒЫ",
         search: "Санат, пайдаланушы немесе ID бойынша іздеу...",
         incidents: "Белсенді инциденттер",
-        weather: "Ауа райы",
-        weatherValue: "4°C · Жаңбыр",
-        threat: "Қауіп деңгейі",
-        threatValue: "ЖОҒАРЫ",
-        telemetry: "Телеметрия",
-        telemetryValue: "ҚАЛЫПТЫ",
+        system: "Жүйе",
+        systemValue: "ОНЛАЙН",
       };
   return (
     <header className="h-12 shrink-0 border-b border-border bg-card/60 backdrop-blur flex items-center px-3 gap-3 z-30 relative">
@@ -140,9 +132,12 @@ export function Header({
           value={String(totalActive)}
           tone="warning"
         />
-        <Stat icon={CloudRain} label={t.weather} value={t.weatherValue} tone="default" />
-        <Stat icon={AlertTriangle} label={t.threat} value={t.threatValue} tone="danger" />
-        <Stat icon={Wifi} label={t.telemetry} value={t.telemetryValue} tone="success" />
+        <Stat
+          icon={Wifi}
+          label={t.system}
+          value={t.systemValue}
+          tone="success"
+        />
         <div className="px-2 py-1 rounded-md bg-card/60 border border-border font-mono text-[11px] tabular-nums">
           {now.toLocaleTimeString("en-GB")}
         </div>

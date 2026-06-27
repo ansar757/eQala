@@ -40,10 +40,12 @@ export function AnalyticsPanel({
   incidents,
   selectedRisk,
   language,
+  onResolveIncident,
 }: {
   incidents: Incident[];
   selectedRisk: Incident | null;
   language: "ru" | "kz";
+  onResolveIncident: (id: string) => void;
 }) {
   const stats = useMemo(() => {
     const total = incidents.length;
@@ -94,6 +96,9 @@ export function AnalyticsPanel({
         multipleReports: "Обнаружено несколько независимых сообщений об отключении электроэнергии в одной зоне.",
         dispatchTeam: "Направить выездную инспекционную группу.",
         unknown: "Неизвестно",
+        resolved: "Решено",
+        newStatus: "Новый",
+        resolveButton: "✔ Завершить",
       }
     : {
         totalReports: "Барлық өтініштер",
@@ -114,6 +119,9 @@ export function AnalyticsPanel({
         multipleReports: "Бір аймақта электр қуатының өшуі туралы бірнеше тәуелсіз хабарлама анықталды.",
         dispatchTeam: "Тексеру тобын жіберу ұсынылады.",
         unknown: "Белгісіз",
+        resolved: "Шешілді",
+        newStatus: "Жаңа",
+        resolveButton: "✔ Шешілді деп белгілеу",
       };
 
   const riskLevelLabel =
@@ -260,12 +268,25 @@ export function AnalyticsPanel({
                       </span>
                     </div>
                       <div className="text-[11px] text-muted-foreground truncate">
-                        User {i.userId ?? t.unknown} · {language === "ru" ? "Новый" : "Жаңа"}
+                        User {i.userId ?? t.unknown} · {i.status === "resolved" ? t.resolved : t.newStatus}
                       </div>
                     {i.description && (
                       <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
                         {i.description}
                       </div>
+                    )}
+                    {i.status !== "resolved" && (
+                      <button
+                        onClick={() => onResolveIncident(i.id)}
+                        className="mt-2 inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-medium text-white transition-all hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/20"
+                      >
+                        {t.resolveButton}
+                      </button>
+                    )}
+                    {i.status === "resolved" && (
+                      <span className="mt-2 inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-400 border border-emerald-500/20">
+                        ✅ {t.resolved}
+                      </span>
                     )}
                   </div>
                 </div>
