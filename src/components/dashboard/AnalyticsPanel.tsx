@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Droplets, Zap, Flame, MessageSquare, Clock, Users } from "lucide-react";
+import { Droplets, Zap, Flame, MessageSquare, Clock, Users, Trash2, Lightbulb, Construction } from "lucide-react";
 import { INCIDENT_META, type Incident } from "@/lib/incidents";
 
 function timeAgo(iso: string) {
@@ -52,13 +52,26 @@ export function AnalyticsPanel({
     const water = incidents.filter((i) => i.type === "water").length;
     const power = incidents.filter((i) => i.type === "power").length;
     const gas = incidents.filter((i) => i.type === "gas").length;
+    const garbage = incidents.filter((i) => i.type === "garbage").length;
+    const lighting = incidents.filter((i) => i.type === "lighting").length;
+    const road = incidents.filter((i) => i.type === "road").length;
     const uniqueUsers = new Set(incidents.map((i) => i.userId).filter((userId) => userId != null))
       .size;
     const latestCreatedAt = incidents
       .map((i) => i.createdAt)
       .sort((a, b) => +new Date(b) - +new Date(a))[0];
 
-    return { total, water, power, gas, uniqueUsers, latestCreatedAt };
+    return {
+      total,
+      water,
+      power,
+      gas,
+      garbage,
+      lighting,
+      road,
+      uniqueUsers,
+      latestCreatedAt,
+    };
   }, [incidents]);
 
   const recent = [...incidents]
@@ -67,13 +80,14 @@ export function AnalyticsPanel({
 
   const riskScore = Number((selectedRisk as any)?.riskScore ?? 0);
   const reportCount = Number((selectedRisk as any)?.reportCount ?? 0);
+  const uniqueUsersInCluster = Number((selectedRisk as any)?.uniqueUsers ?? 1);
 
   const riskLevel =
-    riskScore >= 80
+    riskScore >= 85
       ? "CRITICAL"
-      : riskScore >= 60
+      : riskScore >= 70
         ? "HIGH"
-        : riskScore >= 40
+        : riskScore >= 45
           ? "MEDIUM"
           : "LOW";
 
@@ -83,6 +97,9 @@ export function AnalyticsPanel({
         water: "Водоснабжение",
         power: "Электросети",
         gas: "Газоснабжение",
+        garbage: "Мусор",
+        lighting: "Освещение",
+        road: "Дороги",
         users: "Пользователи",
         aiMonitoring: "AI Мониторинг",
         liveFeed: "Лента инцидентов",
@@ -107,6 +124,9 @@ export function AnalyticsPanel({
         water: "Су жүйесі",
         power: "Электр желісі",
         gas: "Газ жүйесі",
+        garbage: "Қоқыс",
+        lighting: "Жарық",
+        road: "Жолдар",
         users: "Пайдаланушылар",
         aiMonitoring: "AI Мониторинг",
         liveFeed: "Оқиғалар лентасы",
@@ -155,7 +175,47 @@ export function AnalyticsPanel({
       return language === "ru" ? "Газоснабжение" : "Газ жүйесі";
     }
 
+    if (type === "garbage") {
+      return language === "ru" ? "Проблемы с мусором" : "Қоқыс мәселелері";
+    }
+
+    if (type === "lighting") {
+      return language === "ru" ? "Уличное освещение" : "Көше жарығы";
+    }
+
+    if (type === "road") {
+      return language === "ru" ? "Проблемы с дорогой" : "Жол мәселелері";
+    }
+
     return type;
+  };
+
+  const getRiskZoneTitle = (type: string) => {
+    if (type === "power") {
+      return language === "ru" ? "Зона риска электросетей" : "Электр желісі тәуекел аймағы";
+    }
+
+    if (type === "water") {
+      return language === "ru" ? "Зона риска водоснабжения" : "Су жүйесі тәуекел аймағы";
+    }
+
+    if (type === "gas") {
+      return language === "ru" ? "Зона риска газоснабжения" : "Газ жүйесі тәуекел аймағы";
+    }
+
+    if (type === "garbage") {
+      return language === "ru" ? "Зона риска обращения с отходами" : "Қоқыс тәуекел аймағы";
+    }
+
+    if (type === "lighting") {
+      return language === "ru" ? "Зона риска уличного освещения" : "Көше жарығы тәуекел аймағы";
+    }
+
+    if (type === "road") {
+      return language === "ru" ? "Зона риска дорожной инфраструктуры" : "Жол инфрақұрылымы тәуекел аймағы";
+    }
+
+    return language === "ru" ? "Зона риска" : "Тәуекел аймағы";
   };
 
   return (
@@ -198,6 +258,38 @@ export function AnalyticsPanel({
           />
         </div>
 
+        <div className="rounded-md border border-border bg-card/60 p-3">
+          <div className="mb-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            {language === "ru" ? "Обращения граждан" : "Тұрғындар өтініштері"}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Trash2 className="size-4" style={{ color: "#8d6e63" }} />
+                <span className="text-sm">{t.garbage}</span>
+              </div>
+              <span className="font-mono font-semibold">{stats.garbage}</span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="size-4" style={{ color: "#ffd54f" }} />
+                <span className="text-sm">{t.lighting}</span>
+              </div>
+              <span className="font-mono font-semibold">{stats.lighting}</span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Construction className="size-4" style={{ color: "#78909c" }} />
+                <span className="text-sm">{t.road}</span>
+              </div>
+              <span className="font-mono font-semibold">{stats.road}</span>
+            </div>
+          </div>
+        </div>
+
         {selectedRisk ? (
           <div className="rounded-md border border-destructive/40 bg-card/60 p-3">
             <div className="text-[10px] uppercase tracking-[0.18em] text-destructive">
@@ -205,7 +297,7 @@ export function AnalyticsPanel({
             </div>
 
             <div className="mt-2 text-lg font-semibold">
-              {t.riskZone}
+              {getRiskZoneTitle(selectedRisk.type)}
             </div>
 
             <div className="mt-3 space-y-1 text-sm">
@@ -213,11 +305,13 @@ export function AnalyticsPanel({
               <div><strong>{t.severity}:</strong> {riskLevelLabel}</div>
               <div><strong>{t.category}:</strong> {getCategoryLabel(selectedRisk.type)}</div>
               <div><strong>{t.reports}:</strong> {reportCount}</div>
-              <div><strong>{t.users}:</strong> {reportCount}</div>
+              <div><strong>{t.users}:</strong> {uniqueUsersInCluster}</div>
             </div>
 
             <div className="mt-3 text-xs text-muted-foreground">
-              {t.multipleReports}
+              {language === "ru"
+                ? `Обнаружен кластер обращений по категории «${getCategoryLabel(selectedRisk.type)}».`
+                : `«${getCategoryLabel(selectedRisk.type)}» санаты бойынша өтініштер кластері анықталды.`}
             </div>
 
             <div className="mt-3 text-xs text-destructive font-semibold">

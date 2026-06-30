@@ -77,16 +77,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "eQaskelen Guardian" },
+      {
+        name: "description",
+        content: "Цифровая платформа мониторинга городской инфраструктуры Каскелена",
+      },
+      { name: "author", content: "eQaskelen Team" },
+      { property: "og:title", content: "eQaskelen Guardian" },
+      {
+        property: "og:description",
+        content: "Цифровая платформа мониторинга городской инфраструктуры Каскелена",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      {
+        rel: "icon",
+        type: "image/png",
+        href: "/tyf.png?v=2",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/tyf.png?v=2",
+      },
       {
         rel: "stylesheet",
         href: appCss,

@@ -108,14 +108,18 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
             return;
           }
 
-          const nearby = incidents.filter((other, otherIndex) => {
+          const nearby = incidents.filter((other) => {
+            if (other.type !== candidate.type) {
+              return false;
+            }
+
             return (
               getDistanceMeters(
                 candidate.latitude,
                 candidate.longitude,
                 other.latitude,
                 other.longitude,
-              ) <= 300
+              ) <= 200
             );
           });
 
@@ -141,7 +145,24 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
           const powerCount = nearby.filter(i => i.type === "power").length;
           const waterCount = nearby.filter(i => i.type === "water").length;
           const gasCount = nearby.filter(i => i.type === "gas").length;
+          const garbageCount = nearby.filter(i => i.type === "garbage").length;
+          const lightingCount = nearby.filter(i => i.type === "lighting").length;
+          const roadCount = nearby.filter(i => i.type === "road").length;
           const hotspotCount = nearby.length;
+
+          const uniqueUsersInCluster = new Set(
+            nearby
+              .map((i) => i.userId)
+              .filter(Boolean)
+          ).size;
+
+          const clusterType =
+            roadCount >= 3 ? "road" :
+            garbageCount >= 3 ? "garbage" :
+            lightingCount >= 3 ? "lighting" :
+            gasCount >= 3 ? "gas" :
+            powerCount >= 3 ? "power" :
+            "water";
 
           let color = "";
           let label = "";
@@ -201,9 +222,13 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
     ${language === "ru" ? "AI АНАЛИЗ УГРОЗ" : "AI ҚАУІП ТАЛДАУЫ"}
   </div>
   <div>${language === "ru" ? "Всего обращений" : "Барлық өтініштер"}: ${hotspotCount}</div>
+  <div>${language === "ru" ? "Уникальных пользователей" : "Бірегей пайдаланушылар"}: ${Math.max(uniqueUsersInCluster, 1)}</div>
   <div>${language === "ru" ? "⚡ Электроснабжение" : "⚡ Электрмен жабдықтау"}: ${powerCount}</div>
   <div>${language === "ru" ? "💧 Водоснабжение" : "💧 Су жабдықтау"}: ${waterCount}</div>
   <div>${language === "ru" ? "🔥 Газоснабжение" : "🔥 Газ жүйесі"}: ${gasCount}</div>
+  <div>${language === "ru" ? "🗑 Мусор" : "🗑 Қоқыс"}: ${garbageCount}</div>
+  <div>${language === "ru" ? "💡 Освещение" : "💡 Жарық"}: ${lightingCount}</div>
+  <div>${language === "ru" ? "🛣 Дороги" : "🛣 Жолдар"}: ${roadCount}</div>
   <div>AI Risk Score: ${riskScore}%</div>
   <div>${language === "ru" ? "Кластер обращений обнаружен" : "Өтініштер кластері анықталды"}</div>
 </div>
@@ -213,9 +238,11 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
             if (onSelect) {
               onSelect({
                 ...nearby[0],
+                type: clusterType,
                 latitude: centerLat,
                 longitude: centerLng,
                 reportCount: hotspotCount,
+                uniqueUsers: Math.max(uniqueUsersInCluster, 1),
                 riskScore,
               } as Incident);
             }
@@ -245,9 +272,11 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
             if (onSelect) {
               onSelect({
                 ...nearby[0],
+                type: clusterType,
                 latitude: centerLat,
                 longitude: centerLng,
                 reportCount: hotspotCount,
+                uniqueUsers: Math.max(uniqueUsersInCluster, 1),
                 riskScore,
               } as Incident);
             }
@@ -267,9 +296,21 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
                 ? language === "ru"
                   ? "Газоснабжение"
                   : "Газ жүйесі"
-                : language === "ru"
-                  ? "Водоснабжение"
-                  : "Су жүйесі";
+                : incident.type === "garbage"
+                  ? language === "ru"
+                    ? "Проблемы с мусором"
+                    : "Қоқыс мәселелері"
+                  : incident.type === "lighting"
+                    ? language === "ru"
+                      ? "Уличное освещение"
+                      : "Көше жарығы"
+                    : incident.type === "road"
+                      ? language === "ru"
+                        ? "Проблемы с дорогой"
+                        : "Жол мәселелері"
+                      : language === "ru"
+                        ? "Водоснабжение"
+                        : "Су жүйесі";
 
           const statusLabel =
             incident.status === "resolved"

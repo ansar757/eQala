@@ -32,6 +32,8 @@
   --color-water: var(--water);
   --color-power: var(--power);
   --color-flood: var(--flood);
+  --color-garbage: var(--garbage);
+  --color-lighting: var(--lighting);
   --color-road: var(--road);
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -64,6 +66,8 @@
   --water: oklch(0.7 0.18 230);
   --power: oklch(0.85 0.18 90);
   --flood: oklch(0.62 0.24 27);
+  --garbage: oklch(0.55 0.03 60);
+  --lighting: oklch(0.9 0.15 95);
   --road: oklch(0.72 0.18 50);
   --success: oklch(0.72 0.18 150);
   --warning: oklch(0.78 0.16 75);

@@ -44,7 +44,16 @@ function Dashboard() {
       ? incidents.filter((i) => i.type === "water")
       : active === "power"
         ? incidents.filter((i) => i.type === "power")
-        : incidents;
+        : active === "gas"
+          ? incidents.filter((i) => i.type === "gas")
+          : active === "reports"
+            ? incidents.filter(
+                (i) =>
+                  i.type === "garbage" ||
+                  i.type === "lighting" ||
+                  i.type === "road"
+              )
+            : incidents;
 
   console.log("ACTIVE MODULE:", active);
   console.log("FILTERED INCIDENTS:", filteredIncidents);
@@ -59,6 +68,9 @@ function Dashboard() {
 
       if (active === "power") {
         question = "Analyze the electrical infrastructure situation and provide recommendations";
+      }
+      if (active === "gas") {
+        question = "Analyze the gas infrastructure situation and provide recommendations";
       }
 
       console.log("AI QUESTION:", question);

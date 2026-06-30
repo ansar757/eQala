@@ -1,4 +1,4 @@
-export type IncidentType = "water" | "power" | "gas";
+export type IncidentType = "water" | "power" | "gas" | "garbage" | "lighting" | "road";
 
 export interface Incident {
   id: string;
@@ -19,6 +19,9 @@ export const INCIDENT_META: Record<IncidentType, { label: string; color: string;
     water: { label: "Water outage", color: "#4ab8ff", cssVar: "var(--water)" },
     power: { label: "Power outage", color: "#f4d03f", cssVar: "var(--power)" },
     gas: { label: "Gas issue", color: "#ff6b35", cssVar: "var(--gas)" },
+    garbage: { label: "Garbage issue", color: "#8d6e63", cssVar: "var(--garbage)" },
+    lighting: { label: "Street lighting", color: "#ffd54f", cssVar: "var(--lighting)" },
+    road: { label: "Road issue", color: "#78909c", cssVar: "var(--road)" },
   };
 
 // Kaskelen, Kazakhstan ~ 43.2050, 76.6200
@@ -59,6 +62,30 @@ export function normalizeIncidentType(value: string): IncidentType {
     normalized.includes("gas")
   ) {
     return "gas";
+  }
+
+  if (
+    normalized === "garbage" ||
+    normalized.includes("мусор") ||
+    normalized.includes("қоқыс")
+  ) {
+    return "garbage";
+  }
+
+  if (
+    normalized === "lighting" ||
+    normalized.includes("освещ") ||
+    normalized.includes("жарық")
+  ) {
+    return "lighting";
+  }
+
+  if (
+    normalized === "road" ||
+    normalized.includes("дорог") ||
+    normalized.includes("жол")
+  ) {
+    return "road";
   }
 
   return "water";

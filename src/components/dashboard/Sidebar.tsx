@@ -1,11 +1,12 @@
-import { LayoutDashboard, Droplets, Zap, MessageSquare, Settings, Shield } from "lucide-react";
+import { LayoutDashboard, Droplets, Zap, Flame, MessageSquare, Settings } from "lucide-react";
 
-export type ModuleKey = "overview" | "water" | "power" | "reports";
+export type ModuleKey = "overview" | "water" | "power" | "gas" | "reports";
 
 const items = [
   { key: "overview", ru: "Главная", kz: "Басты бет", icon: LayoutDashboard },
   { key: "water", ru: "Водоснабжение", kz: "Су жүйесі", icon: Droplets },
   { key: "power", ru: "Электросети", kz: "Электр желісі", icon: Zap },
+  { key: "gas", ru: "Газоснабжение", kz: "Газ жүйесі", icon: Flame },
   { key: "reports", ru: "Обращения граждан", kz: "Тұрғындар өтініштері", icon: MessageSquare },
 ] as const;
 
@@ -22,10 +23,14 @@ export function Sidebar({
   return (
     <aside className="w-64 shrink-0 border-r border-border bg-card/60 flex flex-col">
       <div className="p-4 border-b border-border flex items-center gap-3">
-        <Shield className="size-5" />
+        <img
+          src="/tyf.png"
+          alt="eQaskelen"
+          className="h-20 w-20 object-contain shrink-0"
+        />
         <div>
-          <div className="font-semibold">eQaskelen</div>
-          <div className="text-xs opacity-70">Guardian</div>
+          <div className="text-lg font-semibold">eQaskelen</div>
+          <div className="text-sm opacity-70">Guardian</div>
         </div>
       </div>
 

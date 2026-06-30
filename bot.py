@@ -90,11 +90,17 @@ CATEGORY_LABELS = {
         "power": "Отключение света",
         "water": "Проблемы с водой",
         "gas": "Проблемы с газом",
+        "garbage": "Проблемы с мусором",
+        "lighting": "Проблемы с уличным освещением",
+        "road": "Проблемы с дорогой",
     },
     "kk": {
         "power": "Электр жарығының өшуі",
         "water": "Су мәселелері",
         "gas": "Газ мәселелері",
+        "garbage": "Қоқыс мәселелері",
+        "lighting": "Көше жарығы мәселелері",
+        "road": "Жол мәселелері",
     },
 }
 
@@ -102,9 +108,15 @@ CATEGORY_BY_BUTTON: dict[str, str] = {
     "⚡ Отключение света": "power",
     "💧 Проблемы с водой": "water",
     "🔥 Проблемы с газом": "gas",
+    "🗑 Проблемы с мусором": "garbage",
+    "💡 Проблемы с уличным освещением": "lighting",
+    "🛣 Проблемы с дорогой": "road",
     "⚡ Электр жарығының өшуі": "power",
     "💧 Су мәселелері": "water",
     "🔥 Газ мәселелері": "gas",
+    "🗑 Қоқыс мәселелері": "garbage",
+    "💡 Көше жарығы мәселелері": "lighting",
+    "🛣 Жол мәселелері": "road",
     "📍 Проверить мой район": "check_area",
     "📍 Менің ауданымды тексеру": "check_area",
 }
@@ -172,12 +184,18 @@ def build_category_keyboard(language: str = "ru") -> types.ReplyKeyboardMarkup:
         builder.button(text="⚡ Электр жарығының өшуі")
         builder.button(text="💧 Су мәселелері")
         builder.button(text="🔥 Газ мәселелері")
+        builder.button(text="🗑 Қоқыс мәселелері")
+        builder.button(text="💡 Көше жарығы мәселелері")
+        builder.button(text="🛣 Жол мәселелері")
         builder.button(text="📍 Менің ауданымды тексеру")
         builder.button(text="☎️ Қызмет байланыстары")
     else:
         builder.button(text="⚡ Отключение света")
         builder.button(text="💧 Проблемы с водой")
         builder.button(text="🔥 Проблемы с газом")
+        builder.button(text="🗑 Проблемы с мусором")
+        builder.button(text="💡 Проблемы с уличным освещением")
+        builder.button(text="🛣 Проблемы с дорогой")
         builder.button(text="📍 Проверить мой район")
         builder.button(text="☎️ Контакты служб")
 
