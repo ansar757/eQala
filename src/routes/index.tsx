@@ -33,7 +33,7 @@ function Dashboard() {
         return;
       }
 
-      setIncidents((data || []).map(mapIncidentRow));
+      setIncidents(((data || []) as any[]).map(mapIncidentRow));
     }
 
     loadIncidents();

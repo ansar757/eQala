@@ -11,6 +11,8 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from dotenv import load_dotenv
+import uuid
+import httpx
 
 from database import database
 
@@ -87,18 +89,22 @@ CATEGORY_LABELS = {
     "ru": {
         "power": "Отключение света",
         "water": "Проблемы с водой",
+        "gas": "Проблемы с газом",
     },
     "kk": {
         "power": "Электр жарығының өшуі",
         "water": "Су мәселелері",
+        "gas": "Газ мәселелері",
     },
 }
 
 CATEGORY_BY_BUTTON: dict[str, str] = {
     "⚡ Отключение света": "power",
     "💧 Проблемы с водой": "water",
+    "🔥 Проблемы с газом": "gas",
     "⚡ Электр жарығының өшуі": "power",
     "💧 Су мәселелері": "water",
+    "🔥 Газ мәселелері": "gas",
     "📍 Проверить мой район": "check_area",
     "📍 Менің ауданымды тексеру": "check_area",
 }
@@ -118,7 +124,8 @@ TEXTS = {
         "success": "✅ Заявка зарегистрирована!\n\nID: {report_id}\nСтатус: Принято\nКатегория: {category}\n\n📍 Геопозиция получена\n🗺️ Добавлено на карту Digital Twin\n\nВаше сообщение помогает выявлять городские проблемы раньше и улучшать цифровой двойник Каскелена.",
         "community": "\n\n📊 Аналитика района\n👥 Обращений по категории: {count}\n{risk}\n🤖 AI Risk Score: {score}%\n🔎 Сигнал отправлен в Digital Twin Каскелена",
         "contacts": "☎️ Контакты служб",
-        "contacts_text": "☎️ Контакты служб\n\n⚡ РЭС Карасай\n📞 +7 (727) 712-66-51\n📞 +7 (727) 712-69-47\n\n💧 Водоканал Каскелен\n📞 Приёмная: 21077\n📞 Служба сбыта: 23100\n📞 Диспетчерская: 22265",
+        "contacts_text": "☎️ Контакты служб\n\n⚡ РЭС Карасай\n📞 +7 (727) 712-66-51\n📞 +7 (727) 712-69-47\n\n💧 Водоканал Каскелен\n📞 Приёмная: 21077\n📞 Служба сбыта: 23100\n📞 Диспетчерская: 22265"
+                         "\n\n🔥 Газовая служба\n📞 Аварийная служба: 104",
         "check_area": "📍 Проверить мой район",
         "check_area_text": "📍 Отправьте свою геопозицию для анализа района.",
     },
@@ -131,7 +138,8 @@ TEXTS = {
         "success": "✅ Өтінім тіркелді!\n\nID: {report_id}\nКүйі: Қабылданды\nСанаты: {category}\n\n📍 Геолокация қабылданды\n🗺️ Digital Twin картасына қосылды\n\nСіздің хабарламаңыз қаланың цифрлық егізін дамытуға және мәселелерді ертерек анықтауға көмектеседі.",
         "community": "\n\n📊 Аудан аналитикасы\n👥 Санат бойынша өтініштер: {count}\n{risk}\n🤖 AI Risk Score: {score}%\n🔎 Сигнал Қаскеленнің Digital Twin жүйесіне жіберілді",
         "contacts": "☎️ Қызмет байланыстары",
-        "contacts_text": "☎️ Қызмет байланыстары\n\n⚡ Қарасай РЭС\n📞 +7 (727) 712-66-51\n📞 +7 (727) 712-69-47\n\n💧 Қаскелең Су Арнасы\n📞 Қабылдау: 21077\n📞 Абоненттік бөлім: 23100\n📞 Диспетчерлік: 22265",
+        "contacts_text": "☎️ Қызмет байланыстары\n\n⚡ Қарасай РЭС\n📞 +7 (727) 712-66-51\n📞 +7 (727) 712-69-47\n\n💧 Қаскелең Су Арнасы\n📞 Қабылдау: 21077\n📞 Абоненттік бөлім: 23100\n📞 Диспетчерлік: 22265"
+                         "\n\n🔥 Газ қызметі\n📞 Авариялық қызмет: 104",
         "check_area": "📍 Менің ауданымды тексеру",
         "check_area_text": "📍 Ауданды талдау үшін геолокацияңызды жіберіңіз.",
     },
@@ -143,6 +151,9 @@ router = Router()
 class ReportIncident(StatesGroup):
     waiting_for_language = State()
     waiting_for_description = State()
+    waiting_for_photo = State()
+    waiting_for_location_method = State()
+    waiting_for_address = State()
     waiting_for_location = State()
 
 
@@ -160,11 +171,13 @@ def build_category_keyboard(language: str = "ru") -> types.ReplyKeyboardMarkup:
     if language == "kk":
         builder.button(text="⚡ Электр жарығының өшуі")
         builder.button(text="💧 Су мәселелері")
+        builder.button(text="🔥 Газ мәселелері")
         builder.button(text="📍 Менің ауданымды тексеру")
         builder.button(text="☎️ Қызмет байланыстары")
     else:
         builder.button(text="⚡ Отключение света")
         builder.button(text="💧 Проблемы с водой")
+        builder.button(text="🔥 Проблемы с газом")
         builder.button(text="📍 Проверить мой район")
         builder.button(text="☎️ Контакты служб")
 
@@ -175,6 +188,15 @@ def build_category_keyboard(language: str = "ru") -> types.ReplyKeyboardMarkup:
 def build_location_keyboard(language: str = "ru") -> types.ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.button(text=TEXTS[language]["location_button"], request_location=True)
+    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+# New function for choosing location method
+def build_location_method_keyboard() -> types.ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="📍 Отправить геопозицию")
+    builder.button(text="✍️ Ввести адрес вручную")
+    builder.adjust(1)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 
@@ -252,12 +274,168 @@ async def handle_description(message: types.Message, state: FSMContext) -> None:
     language = data.get("language", "ru")
 
     await state.update_data(description=message.text)
+    await state.set_state(ReportIncident.waiting_for_photo)
+
+    await message.answer(
+        "📸 Отправьте фотографию проблемы."
+    )
+
+
+
+@router.message(ReportIncident.waiting_for_photo, F.photo)
+async def handle_photo(message: types.Message, state: FSMContext) -> None:
+    photo = message.photo[-1]
+    file_info = await message.bot.get_file(photo.file_id)
+
+    await state.update_data(
+        telegram_file_id=photo.file_id,
+        telegram_file_path=file_info.file_path,
+    )
+
+    logger.info(
+        "Photo received: file_id=%s file_path=%s",
+        photo.file_id,
+        file_info.file_path,
+    )
+
+    data = await state.get_data()
+    language = data.get("language", "ru")
+
+    await state.set_state(ReportIncident.waiting_for_location_method)
+
+    await message.answer(
+        "📍 Как указать место проблемы?\n\n📍 Отправить геопозицию\n✍️ Ввести адрес вручную",
+        reply_markup=build_location_method_keyboard(),
+    )
+
+
+# Handler for choosing location method - geo
+@router.message(ReportIncident.waiting_for_location_method, F.text == "📍 Отправить геопозицию")
+async def choose_geo(message: types.Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    language = data.get("language", "ru")
+
     await state.set_state(ReportIncident.waiting_for_location)
 
     await message.answer(
         TEXTS[language]["share_location"],
         reply_markup=build_location_keyboard(language),
     )
+
+
+# Handler for choosing location method - manual address
+@router.message(ReportIncident.waiting_for_location_method, F.text == "✍️ Ввести адрес вручную")
+async def choose_address(message: types.Message, state: FSMContext) -> None:
+    await state.set_state(ReportIncident.waiting_for_address)
+
+    await message.answer(
+        "Введите адрес проблемы.\n\nНапример:\n• ул. Абылай Хана 35\n• мкр Алтын Ауыл\n• возле школы №3"
+    )
+
+
+# Handler for manual address entry
+@router.message(ReportIncident.waiting_for_address)
+async def handle_manual_address(message: types.Message, state: FSMContext) -> None:
+    if message.from_user is None or not message.text:
+        return
+
+    state_data = await state.get_data()
+    telegram_file_id = state_data.get("telegram_file_id")
+    telegram_file_path = state_data.get("telegram_file_path")
+    photo_url = None
+
+    lat = 43.2090
+    lon = 76.6690
+
+    try:
+        query = f"{message.text}, Каскелен, Казахстан"
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={
+                    "q": query,
+                    "format": "json",
+                    "limit": 1,
+                },
+                headers={
+                    "User-Agent": "eQaskelen/1.0"
+                },
+            )
+
+            response.raise_for_status()
+            results = response.json()
+
+            if results:
+                lat = float(results[0]["lat"])
+                lon = float(results[0]["lon"])
+
+                logger.info(
+                    "Address geocoded: %s -> %s,%s",
+                    message.text,
+                    lat,
+                    lon,
+                )
+    except Exception:
+        logger.exception("Failed to geocode address")
+
+    if telegram_file_path:
+        try:
+            bot_token = get_required_env("BOT_TOKEN")
+            supabase_url = get_required_env("SUPABASE_URL")
+            supabase_key = get_required_env("SUPABASE_KEY")
+
+            telegram_url = (
+                f"https://api.telegram.org/file/bot{bot_token}/"
+                f"{telegram_file_path}"
+            )
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                image_response = await client.get(telegram_url)
+                image_response.raise_for_status()
+
+                filename = f"{uuid.uuid4()}.jpg"
+
+                upload_response = await client.put(
+                    f"{supabase_url}/storage/v1/object/incident-photos/{filename}",
+                    headers={
+                        "Authorization": f"Bearer {supabase_key}",
+                        "apikey": supabase_key,
+                        "Content-Type": "image/jpeg",
+                        "x-upsert": "true",
+                    },
+                    content=image_response.content,
+                )
+
+                upload_response.raise_for_status()
+
+                photo_url = (
+                    f"{supabase_url}/storage/v1/object/public/"
+                    f"incident-photos/{filename}"
+                )
+
+                logger.info("Photo uploaded: %s", photo_url)
+
+        except Exception:
+            logger.exception("Failed to upload incident photo")
+
+    success = await database.insert_incident_report(
+        user_id=message.from_user.id,
+        category=state_data.get("category"),
+        lat=lat,
+        lon=lon,
+        description=state_data.get("description"),
+        telegram_file_id=telegram_file_id,
+        photo_url=photo_url,
+        address=message.text,
+    )
+
+    await state.clear()
+
+    if success:
+        await message.answer("✅ Обращение зарегистрировано.")
+    else:
+        await message.answer("❌ Ошибка при регистрации обращения.")
 
 
 @router.message(ReportIncident.waiting_for_location, F.location)
@@ -270,6 +448,57 @@ async def handle_location(message: types.Message, state: FSMContext) -> None:
     category = state_data.get("category")
     language = state_data.get("language", "ru")
     description = state_data.get("description")
+    telegram_file_id = state_data.get("telegram_file_id")
+    telegram_file_path = state_data.get("telegram_file_path")
+    address = f"{message.location.latitude:.6f}, {message.location.longitude:.6f}"
+    photo_url = None
+
+    if telegram_file_path:
+        try:
+            bot_token = get_required_env("BOT_TOKEN")
+            supabase_url = get_required_env("SUPABASE_URL")
+            supabase_key = get_required_env("SUPABASE_KEY")
+
+            telegram_url = (
+                f"https://api.telegram.org/file/bot{bot_token}/"
+                f"{telegram_file_path}"
+            )
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                image_response = await client.get(telegram_url)
+                image_response.raise_for_status()
+
+                filename = f"{uuid.uuid4()}.jpg"
+
+                upload_response = await client.put(
+                    f"{supabase_url}/storage/v1/object/incident-photos/{filename}",
+                    headers={
+                        "Authorization": f"Bearer {supabase_key}",
+                        "apikey": supabase_key,
+                        "Content-Type": "image/jpeg",
+                        "x-upsert": "true",
+                    },
+                    content=image_response.content,
+                )
+
+                logger.error(
+                    "STORAGE RESPONSE: status=%s headers=%s body=%s",
+                    upload_response.status_code,
+                    dict(upload_response.headers),
+                    upload_response.text,
+                )
+
+                upload_response.raise_for_status()
+
+                photo_url = (
+                    f"{supabase_url}/storage/v1/object/public/"
+                    f"incident-photos/{filename}"
+                )
+
+                logger.info("Photo uploaded: %s", photo_url)
+
+        except Exception:
+            logger.exception("Failed to upload incident photo")
     if not isinstance(category, str):
         await state.clear()
         await message.answer(
@@ -340,6 +569,9 @@ async def handle_location(message: types.Message, state: FSMContext) -> None:
         lat=message.location.latitude,
         lon=message.location.longitude,
         description=description,
+        telegram_file_id=telegram_file_id,
+        photo_url=photo_url,
+        address=address,
     )
 
     count = await database.count_incidents_by_category(

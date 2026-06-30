@@ -140,6 +140,7 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
 
           const powerCount = nearby.filter(i => i.type === "power").length;
           const waterCount = nearby.filter(i => i.type === "water").length;
+          const gasCount = nearby.filter(i => i.type === "gas").length;
           const hotspotCount = nearby.length;
 
           let color = "";
@@ -202,6 +203,7 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
   <div>${language === "ru" ? "Всего обращений" : "Барлық өтініштер"}: ${hotspotCount}</div>
   <div>${language === "ru" ? "⚡ Электроснабжение" : "⚡ Электрмен жабдықтау"}: ${powerCount}</div>
   <div>${language === "ru" ? "💧 Водоснабжение" : "💧 Су жабдықтау"}: ${waterCount}</div>
+  <div>${language === "ru" ? "🔥 Газоснабжение" : "🔥 Газ жүйесі"}: ${gasCount}</div>
   <div>AI Risk Score: ${riskScore}%</div>
   <div>${language === "ru" ? "Кластер обращений обнаружен" : "Өтініштер кластері анықталды"}</div>
 </div>
@@ -261,11 +263,26 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
               ? language === "ru"
                 ? "Электросети"
                 : "Электр желісі"
-              : language === "ru"
-                ? "Водоснабжение"
-                : "Су жүйесі";
+              : incident.type === "gas"
+                ? language === "ru"
+                  ? "Газоснабжение"
+                  : "Газ жүйесі"
+                : language === "ru"
+                  ? "Водоснабжение"
+                  : "Су жүйесі";
 
-          const statusLabel = language === "ru" ? "Новый" : "Жаңа";
+          const statusLabel =
+            incident.status === "resolved"
+              ? language === "ru"
+                ? "Решено"
+                : "Шешілді"
+              : incident.status === "in_progress"
+                ? language === "ru"
+                  ? "В работе"
+                  : "Жұмыста"
+                : language === "ru"
+                  ? "Новый"
+                  : "Жаңа";
 
           const createdLabel = new Date(incident.createdAt).toLocaleString(
             language === "ru" ? "ru-RU" : "kk-KZ",
@@ -291,14 +308,33 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
           });
           const marker = leaflet.marker([incident.latitude, incident.longitude], { icon });
           marker.bindPopup(`
-<div style="min-width:220px">
+<div style="min-width:260px">
   <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:${meta.color}">
     ${t.citizenReport}
   </div>
 
+  ${incident.photoUrl ? `
+    <div style="margin-top:8px">
+      <img
+        src="${escapeHtml(String(incident.photoUrl))}"
+        alt="Incident photo"
+        style="width:100%;max-height:180px;object-fit:cover;border-radius:8px"
+      />
+    </div>
+  ` : ""}
+
   <div style="display:grid;gap:6px;margin-top:8px;font-size:12px">
     <div><strong>${t.category}:</strong> ${escapeHtml(categoryLabel)}</div>
     <div><strong>${t.status}:</strong> ${statusLabel}</div>
+
+    ${incident.address ? `
+      <div><strong>📍 ${language === "ru" ? "Адрес" : "Мекенжай"}:</strong> ${escapeHtml(String(incident.address))}</div>
+    ` : ""}
+
+    ${incident.description ? `
+      <div><strong>📝 ${language === "ru" ? "Описание" : "Сипаттама"}:</strong> ${escapeHtml(String(incident.description))}</div>
+    ` : ""}
+
     <div><strong>${t.created}:</strong> ${createdLabel}</div>
     <div><strong>${t.userId}:</strong> ${escapeHtml(String(incident.userId ?? t.unknown))}</div>
   </div>
@@ -306,7 +342,7 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
 `);
           marker.on("click", () => {
             if (onSelect) {
-              onSelect(null as unknown as Incident);
+              onSelect(incident);
             }
           });
           marker.addTo(markersLayer);

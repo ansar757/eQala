@@ -1,10 +1,12 @@
-export type IncidentType = "water" | "power" ;
+export type IncidentType = "water" | "power" | "gas";
 
 export interface Incident {
   id: string;
   type: IncidentType;
   category: string;
   description: string | null;
+  photoUrl: string | null;
+  address: string | null;
   createdAt: string;
   status: string;
   latitude: number;
@@ -16,6 +18,7 @@ export const INCIDENT_META: Record<IncidentType, { label: string; color: string;
   {
     water: { label: "Water outage", color: "#4ab8ff", cssVar: "var(--water)" },
     power: { label: "Power outage", color: "#f4d03f", cssVar: "var(--power)" },
+    gas: { label: "Gas issue", color: "#ff6b35", cssVar: "var(--gas)" },
   };
 
 // Kaskelen, Kazakhstan ~ 43.2050, 76.6200
@@ -27,6 +30,8 @@ export interface IncidentRow {
   user_id: number | string | null;
   category: string;
   description: string | null;
+  photo_url: string | null;
+  address: string | null;
   lat: number;
   lon: number;
   status: string;
@@ -47,6 +52,15 @@ export function normalizeIncidentType(value: string): IncidentType {
   ) {
     return "power";
   }
+
+  if (
+    normalized === "gas" ||
+    normalized.includes("газ") ||
+    normalized.includes("gas")
+  ) {
+    return "gas";
+  }
+
   return "water";
 }
 
@@ -61,6 +75,8 @@ export function mapIncidentRow(row: IncidentRow): Incident {
     type,
     category,
     description: row.description,
+    photoUrl: row.photo_url,
+    address: row.address,
     createdAt: row.created_at,
     status: row.status,
     latitude,

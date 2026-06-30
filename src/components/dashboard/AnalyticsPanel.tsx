@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Droplets, Zap, Waves, MessageSquare, Clock, Users, Construction } from "lucide-react";
+import { Droplets, Zap, Flame, MessageSquare, Clock, Users } from "lucide-react";
 import { INCIDENT_META, type Incident } from "@/lib/incidents";
 
 function timeAgo(iso: string) {
@@ -51,13 +51,14 @@ export function AnalyticsPanel({
     const total = incidents.length;
     const water = incidents.filter((i) => i.type === "water").length;
     const power = incidents.filter((i) => i.type === "power").length;
+    const gas = incidents.filter((i) => i.type === "gas").length;
     const uniqueUsers = new Set(incidents.map((i) => i.userId).filter((userId) => userId != null))
       .size;
     const latestCreatedAt = incidents
       .map((i) => i.createdAt)
       .sort((a, b) => +new Date(b) - +new Date(a))[0];
 
-    return { total, water, power, uniqueUsers, latestCreatedAt };
+    return { total, water, power, gas, uniqueUsers, latestCreatedAt };
   }, [incidents]);
 
   const recent = [...incidents]
@@ -81,6 +82,7 @@ export function AnalyticsPanel({
         totalReports: "Всего обращений",
         water: "Водоснабжение",
         power: "Электросети",
+        gas: "Газоснабжение",
         users: "Пользователи",
         aiMonitoring: "AI Мониторинг",
         liveFeed: "Лента инцидентов",
@@ -104,6 +106,7 @@ export function AnalyticsPanel({
         totalReports: "Барлық өтініштер",
         water: "Су жүйесі",
         power: "Электр желісі",
+        gas: "Газ жүйесі",
         users: "Пайдаланушылар",
         aiMonitoring: "AI Мониторинг",
         liveFeed: "Оқиғалар лентасы",
@@ -148,6 +151,10 @@ export function AnalyticsPanel({
       return language === "ru" ? "Водоснабжение" : "Су жүйесі";
     }
 
+    if (type === "gas") {
+      return language === "ru" ? "Газоснабжение" : "Газ жүйесі";
+    }
+
     return type;
   };
 
@@ -176,6 +183,12 @@ export function AnalyticsPanel({
             label={t.power}
             value={stats.power}
             color={INCIDENT_META.power.color}
+          />
+          <MetricCard
+            icon={Flame}
+            label={t.gas}
+            value={stats.gas}
+            color="#ff6b35"
           />
           <MetricCard
             icon={Users}

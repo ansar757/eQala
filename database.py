@@ -113,6 +113,9 @@ class SupabaseIncidentDatabase:
         lat: float,
         lon: float,
         description: str | None = None,
+        telegram_file_id: str | None = None,
+        photo_url: str | None = None,
+        address: str | None = None,
     ) -> bool:
         """Insert one incident report into Supabase.
 
@@ -139,6 +142,9 @@ class SupabaseIncidentDatabase:
             "lat": float(lat),
             "lon": float(lon),
             "status": "new",
+            "telegram_file_id": telegram_file_id,
+            "photo_url": photo_url,
+            "address": address,
         }
 
         for attempt in range(1, self._max_retries + 1):
@@ -152,12 +158,14 @@ class SupabaseIncidentDatabase:
 
                 if 200 <= response.status_code < 300:
                     logger.info(
-                        "Incident report inserted: user_id=%s category=%s description=%s lat=%s lon=%s.",
+                        "Incident report inserted: user_id=%s category=%s description=%s lat=%s lon=%s photo_url=%s address=%s.",
                         user_id,
                         category,
                         description,
                         lat,
                         lon,
+                        photo_url,
+                        address,
                     )
                     return True
 
