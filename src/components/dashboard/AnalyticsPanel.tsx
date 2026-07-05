@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Droplets, Zap, Flame, MessageSquare, Clock, Users, Trash2, Lightbulb, Construction } from "lucide-react";
 import { INCIDENT_META, type Incident } from "@/lib/incidents";
+import { getCrimeStats, getCrimeHotspots } from "@/lib/api/crime";
 
 function timeAgo(iso: string) {
   const d = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -47,6 +48,19 @@ export function AnalyticsPanel({
   language: "ru" | "kz";
   onResolveIncident: (id: string) => void;
 }) {
+  const [crimeStats, setCrimeStats] = useState<any>(null);
+  const [crimeHotspots, setCrimeHotspots] = useState<any[]>([]);
+  const [showAiPanel, setShowAiPanel] = useState(true);
+  const [showCrimePanel, setShowCrimePanel] = useState(true);
+
+  useEffect(() => {
+    getCrimeStats()
+      .then(setCrimeStats)
+      .catch((err) => console.error("Crime stats error:", err));
+    getCrimeHotspots()
+      .then(setCrimeHotspots)
+      .catch((err) => console.error("Crime hotspots error:", err));
+  }, []);
   const stats = useMemo(() => {
     const total = incidents.length;
     const water = incidents.filter((i) => i.type === "water").length;
@@ -76,7 +90,7 @@ export function AnalyticsPanel({
 
   const recent = [...incidents]
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-    .slice(0, 8);
+    .slice(0, 3);
 
   const riskScore = Number((selectedRisk as any)?.riskScore ?? 0);
   const reportCount = Number((selectedRisk as any)?.reportCount ?? 0);
@@ -161,6 +175,21 @@ export function AnalyticsPanel({
           MEDIUM: "Орташа",
           LOW: "Төмен",
         }[riskLevel];
+
+  const hotspotRisk = crimeHotspots[0]?.risk as "HIGH" | "MEDIUM" | "LOW" | undefined;
+
+  const hotspotRiskLabel =
+    language === "ru"
+      ? hotspotRisk === "HIGH"
+        ? "ВЫСОКИЙ"
+        : hotspotRisk === "MEDIUM"
+          ? "СРЕДНИЙ"
+          : "НИЗКИЙ"
+      : hotspotRisk === "HIGH"
+        ? "ЖОҒАРЫ"
+        : hotspotRisk === "MEDIUM"
+          ? "ОРТАША"
+          : "ТӨМЕН";
 
   const getCategoryLabel = (type: string) => {
     if (type === "power") {
@@ -290,48 +319,224 @@ export function AnalyticsPanel({
           </div>
         </div>
 
-        {selectedRisk ? (
-          <div className="rounded-md border border-destructive/40 bg-card/60 p-3">
-            <div className="text-[10px] uppercase tracking-[0.18em] text-destructive">
-              {t.aiThreatAnalysis}
+        <div className="rounded-md border border-border bg-card/60 p-3">
+          <div className="mb-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            {language === "ru" ? "Crime Analytics" : "Қылмыс аналитикасы"}
+          </div>
+
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span>{language === "ru" ? "Всего преступлений" : "Барлық қылмыс"}</span>
+              <span className="font-mono font-semibold">
+                {crimeStats?.total ?? "..."}
+              </span>
             </div>
 
-            <div className="mt-2 text-lg font-semibold">
-              {getRiskZoneTitle(selectedRisk.type)}
+            <div className="flex items-center justify-between">
+              <span>{language === "ru" ? "Тяжкие" : "Ауыр"}</span>
+              <span className="font-mono">
+                {crimeStats?.severity?.["3"] ?? 0}
+              </span>
             </div>
 
-            <div className="mt-3 space-y-1 text-sm">
-              <div><strong>{t.riskScore}:</strong> {riskScore}</div>
-              <div><strong>{t.severity}:</strong> {riskLevelLabel}</div>
-              <div><strong>{t.category}:</strong> {getCategoryLabel(selectedRisk.type)}</div>
-              <div><strong>{t.reports}:</strong> {reportCount}</div>
-              <div><strong>{t.users}:</strong> {uniqueUsersInCluster}</div>
+            <div className="flex items-center justify-between">
+              <span>{language === "ru" ? "Особо тяжкие" : "Аса ауыр"}</span>
+              <span className="font-mono">
+                {crimeStats?.severity?.["4"] ?? 0}
+              </span>
             </div>
 
-            <div className="mt-3 text-xs text-muted-foreground">
-              {language === "ru"
-                ? `Обнаружен кластер обращений по категории «${getCategoryLabel(selectedRisk.type)}».`
-                : `«${getCategoryLabel(selectedRisk.type)}» санаты бойынша өтініштер кластері анықталды.`}
+            <div className="flex items-center justify-between">
+              <span>{language === "ru" ? "Кражи" : "Ұрлық"}</span>
+              <span className="font-mono">
+                {crimeStats?.stats?.["1880"] ?? 0}
+              </span>
             </div>
 
-            <div className="mt-3 text-xs text-destructive font-semibold">
-              {t.recommendation}: {riskScore >= 80
-                ? t.dispatchTeam
-                : language === "ru"
-                  ? "Продолжить мониторинг ситуации."
-                  : "Жағдайды бақылауды жалғастыру."}
+            <div className="flex items-center justify-between">
+              <span>{language === "ru" ? "Мошенничество" : "Алаяқтық"}</span>
+              <span className="font-mono">
+                {crimeStats?.stats?.["1900"] ?? 0}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span>{language === "ru" ? "Грабеж" : "Тонау"}</span>
+              <span className="font-mono">
+                {crimeStats?.stats?.["1910"] ?? 0}
+              </span>
             </div>
           </div>
-        ) : (
-          <div className="rounded-md border border-border bg-card/60 p-3">
-            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              {t.aiMonitoring}
+
+          <div className="mt-4 border-t border-border pt-3">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              {language === "ru" ? "По месяцам" : "Айлар бойынша"}
             </div>
 
-            <div className="mt-3 text-sm text-muted-foreground">
-              {t.selectRiskZone}
+            <div className="grid grid-cols-4 gap-2 text-[11px]">
+              {Object.entries(crimeStats?.monthly ?? {})
+                .sort(([a], [b]) => Number(a) - Number(b))
+                .slice(0, 12)
+                .map(([month, count]) => (
+                  <div
+                    key={month}
+                    className={`rounded border border-border/50 px-2 py-2 text-center transition-all hover:scale-105 ${
+                      Number(count) >= 180
+                        ? "bg-red-500/20 border-red-500/40"
+                        : Number(count) >= 150
+                          ? "bg-orange-500/20 border-orange-500/40"
+                          : Number(count) >= 130
+                            ? "bg-yellow-500/15 border-yellow-500/30"
+                            : "bg-card/40"
+                    }`}
+                  >
+                    <div className="font-mono">{month}</div>
+                    <div>{String(count)}</div>
+                  </div>
+                ))}
             </div>
           </div>
+          <div className="mt-4 border-t border-border pt-3">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              🤖 {language === "ru" ? "AI Анализ преступности" : "AI Қылмыс талдауы"}
+            </div>
+
+            {showCrimePanel && crimeHotspots.length > 0 && (
+              <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-red-400">
+                    🔥 {language === "ru"
+                      ? "Зона повышенного риска"
+                      : "Ең қауіпті аймақ"}
+                  </div>
+
+                  <button
+                    onClick={() => setShowCrimePanel(false)}
+                    className="text-xs text-muted-foreground hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="mt-2 space-y-1 text-xs">
+                  <div>
+                    <strong>
+                      {language === "ru"
+                        ? "Уровень риска"
+                        : "Тәуекел деңгейі"}:
+                    </strong>{" "}
+                    {hotspotRiskLabel}
+                  </div>
+
+                  <div>
+                    <strong>{language === "ru" ? "Преступлений" : "Қылмыс"}:</strong>{" "}
+                    {crimeHotspots[0]?.count}
+                  </div>
+
+                  <div>
+                    <strong>{language === "ru" ? "Мошенничество" : "Алаяқтық"}:</strong>{" "}
+                    {crimeHotspots[0]?.fraud}
+                  </div>
+
+                  <div>
+                    <strong>{language === "ru" ? "Кражи" : "Ұрлық"}:</strong>{" "}
+                    {crimeHotspots[0]?.theft}
+                  </div>
+                </div>
+
+                <div className="mt-3 text-xs text-muted-foreground">
+                  {language === "ru"
+                    ? `Выявлена зона повышенной криминальной активности. Основную долю составляют мошенничество и имущественные преступления.`
+                    : `Қылмыстық белсенділігі жоғары аймақ анықталды. Негізгі үлесті алаяқтық пен мүліктік қылмыстар құрайды.`}
+                </div>
+
+                <div className="mt-3 text-xs font-semibold text-red-400">
+                  {language === "ru"
+                    ? "Рекомендация: усилить патрулирование и профилактические мероприятия."
+                    : "Ұсыныс: патрульдеуді және профилактикалық шараларды күшейту."}
+                </div>
+              </div>
+            )}
+            {!showCrimePanel && crimeHotspots.length > 0 && (
+              <button
+                onClick={() => setShowCrimePanel(true)}
+                className="mt-2 w-full rounded-md border border-red-500/30 bg-red-500/5 p-2 text-sm hover:border-red-500/50"
+              >
+                🔥 {language === "ru"
+                  ? "Показать зону риска"
+                  : "Қауіпті аймақты көрсету"}
+              </button>
+            )}
+          </div>
+        </div>
+        {showAiPanel && (
+          selectedRisk ? (
+            <div className="rounded-md border border-destructive/40 bg-card/60 p-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-destructive">
+                  {t.aiThreatAnalysis}
+                </div>
+                <button
+                  onClick={() => setShowAiPanel(false)}
+                  className="text-xs text-muted-foreground hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mt-2 text-lg font-semibold">
+                {getRiskZoneTitle(selectedRisk.type)}
+              </div>
+
+              <div className="mt-3 space-y-1 text-sm">
+                <div><strong>{t.riskScore}:</strong> {riskScore}</div>
+                <div><strong>{t.severity}:</strong> {riskLevelLabel}</div>
+                <div><strong>{t.category}:</strong> {getCategoryLabel(selectedRisk.type)}</div>
+                <div><strong>{t.reports}:</strong> {reportCount}</div>
+                <div><strong>{t.users}:</strong> {uniqueUsersInCluster}</div>
+              </div>
+
+              <div className="mt-3 text-xs text-muted-foreground">
+                {language === "ru"
+                  ? `Обнаружен кластер обращений по категории «${getCategoryLabel(selectedRisk.type)}».`
+                  : `«${getCategoryLabel(selectedRisk.type)}» санаты бойынша өтініштер кластері анықталды.`}
+              </div>
+
+              <div className="mt-3 text-xs text-destructive font-semibold">
+                {t.recommendation}: {riskScore >= 80
+                  ? t.dispatchTeam
+                  : language === "ru"
+                    ? "Продолжить мониторинг ситуации."
+                    : "Жағдайды бақылауды жалғастыру."}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-md border border-border bg-card/60 p-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {t.aiMonitoring}
+                </div>
+                <button
+                  onClick={() => setShowAiPanel(false)}
+                  className="text-xs text-muted-foreground hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mt-3 text-sm text-muted-foreground">
+                {t.selectRiskZone}
+              </div>
+            </div>
+          )
+        )}
+        {!showAiPanel && (
+          <button
+            onClick={() => setShowAiPanel(true)}
+            className="w-full rounded-md border border-border bg-card/60 p-2 text-sm hover:border-primary/40"
+          >
+            🤖 {language === "ru" ? "Показать AI анализ" : "AI талдауын көрсету"}
+          </button>
         )}
 
         <div className="rounded-md border border-border bg-card/60 p-3">

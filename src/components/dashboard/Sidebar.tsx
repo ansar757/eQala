@@ -1,6 +1,6 @@
-import { LayoutDashboard, Droplets, Zap, Flame, MessageSquare, Settings } from "lucide-react";
+import { LayoutDashboard, Droplets, Zap, Flame, MessageSquare, Settings, Shield } from "lucide-react";
 
-export type ModuleKey = "overview" | "water" | "power" | "gas" | "reports";
+export type ModuleKey = "overview" | "water" | "power" | "gas" | "reports" | "security";
 
 const items = [
   { key: "overview", ru: "Главная", kz: "Басты бет", icon: LayoutDashboard },

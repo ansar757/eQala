@@ -6,7 +6,7 @@ interface Props {
   incidents: Incident[];
   language: "ru" | "kz";
   onSelect?: (i: Incident) => void;
-  viewMode?: "incidents" | "risk";
+  viewMode?: "incidents" | "risk" | "security";
 }
 
 function escapeHtml(value: string) {
@@ -55,6 +55,7 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
 
     async function load() {
       leaflet = await import("leaflet");
+      await import("leaflet.heat");
       if (!isMounted) return;
       if (!containerRef.current) return;
       // Remove existing map if any
@@ -77,6 +78,61 @@ export function MapView({ incidents, language, onSelect, viewMode = "incidents" 
 
       markersLayer = leaflet.layerGroup().addTo(map);
       markersRef.current = markersLayer;
+
+      if (viewMode === "security") {
+        try {
+          const response = await fetch(
+            "https://gis.kgp.kz/arcgis/rest/services/KPSSU/crime/FeatureServer/1/query?where=reg_code%3D%27191952%27%20AND%20yr%3D2025&outFields=crime_code&returnGeometry=true&f=json"
+          );
+
+          const crimeData = await response.json();
+
+          console.log("Crime GIS:", crimeData);
+
+          const heatPoints = (crimeData.features ?? [])
+            .map((feature: any) => {
+              const x = feature?.geometry?.x;
+              const y = feature?.geometry?.y;
+
+              if (typeof x !== "number" || typeof y !== "number") {
+                return null;
+              }
+
+              const lng = (x / 20037508.34) * 180;
+
+              let lat = (y / 20037508.34) * 180;
+              lat =
+                (180 / Math.PI) *
+                (2 * Math.atan(Math.exp((lat * Math.PI) / 180)) -
+                  Math.PI / 2);
+
+              if (
+                Number.isNaN(lat) ||
+                Number.isNaN(lng) ||
+                lat < -90 || lat > 90 ||
+                lng < -180 || lng > 180
+              ) {
+                return null;
+              }
+
+              return [lat, lng, 0.5];
+            })
+            .filter(Boolean);
+
+          console.log("Crime heat points:", heatPoints.length);
+
+          const heatLayer = (leaflet as any).heatLayer(heatPoints, {
+            radius: 28,
+            blur: 22,
+            maxZoom: 17,
+            minOpacity: 0.35,
+          });
+
+          heatLayer.addTo(map);
+        } catch (error) {
+          console.error("Crime layer failed:", error);
+        }
+      }
 
       const showRiskZones = viewMode === "risk";
 

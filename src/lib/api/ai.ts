@@ -204,58 +204,70 @@ RECENT INCIDENT DESCRIPTIONS
 
 Under every section heading, output only bullet points beginning with '-'.
 
-Rules:
-- Think like a municipal operations center and strategic advisor to the Akim.
-- Do not repeat raw statistics unless they support a conclusion.
-- Every bullet must contain an insight, risk assessment, trend, forecast, or management recommendation.
-- Avoid obvious statements such as 'Total incidents = X' or 'Resolved incidents = X'.
-- Explain what the numbers mean for city operations.
-- Highlight dominant infrastructure sectors and citizen concerns.
-- The summary section must explain why the dominant category is operationally important.
-- The summary section must identify the highest-priority infrastructure issue.
-- Analyze all categories: water, power, gas, garbage, lighting, and road.
-- Determine which category generates the greatest operational pressure.
-- Discuss citizen service issues separately from core infrastructure issues.
-- Compare categories and identify which requires the most attention.
-- Mention concentrations of similar incidents when detected.
-- Never display raw latitude or longitude coordinates.
-- Present findings as an executive operational briefing.
-- Use concise but professional language.
-- Every section must contain bullet points only.
-- Maximum 3 bullet points per section.
-- ${summarySection} must contain exactly 3 bullets.
-- ${statusSection} must contain exactly 3 bullets.
-- ${trendsSection} must contain exactly 3 bullets.
-- ${riskSection} must contain exactly 2 bullets.
-- ${actionsSection} must contain exactly 3 bullets.
-- If Total hotspot zones is greater than 0, NEVER state that no hotspots exist.
-- ${riskSection} must identify the dominant hotspot category using HOTSPOT ANALYSIS data only.
-- Never confuse the dominant hotspot category with the dominant incident category.
-- A hotspot exists only when at least 3 nearby incidents of the same category are clustered together.
-- ${riskSection} must explicitly mention hotspot counts.
-- Include a short forecast whenever possible.
-- Create a forecast based on the dominant incident category.
-- Forecast the likely development of the dominant category over the next operational period.
-- Mention whether service stability is improving or deteriorating.
-- Discuss likely future developments if current trends continue.
-- Highlight emerging infrastructure risks.
-- Recommendations must be practical and prioritized.
-- The first recommendation must address the dominant category.
-- Prioritize actions according to operational impact and incident volume.
-- Recommendations must directly reference observed incidents.
-- Do not recommend citywide action unless incident data supports it.
-- Treat incidents with reportCount >= 3 as hotspot zones.
-- If hotspot zones exist, describe them as clusters of citizen reports.
-- Rank hotspot zones by severity.
-- Clearly identify the highest-priority infrastructure issue.
-- Include percentages when useful, but focus on interpretation rather than reporting.
-- Include water share percentage and power share percentage in ${trendsSection}.
-- Include resolution rate percentage in ${statusSection}.
-- Use incident descriptions to infer probable root causes.
-- Add management-oriented language such as operational stability, service reliability, response effectiveness, concentration of complaints, infrastructure pressure, risk escalation, and preventive measures.
-- Sound similar to a Palantir, emergency operations center, or urban intelligence report.
-- Never mention AI, datasets, missing information, limitations, or assumptions.
-- Base all conclusions only on available incident data.
+CRITICAL REPORTING RULES
+
+This report is intended for municipal executives.
+Do NOT repeat the same idea across different sections.
+Each section must provide unique information.
+
+SECTION PURPOSES
+
+${summarySection}
+- Explain the most important factual conclusion.
+- Identify the dominant category.
+- Explain its share of total incidents.
+- No recommendations.
+- No forecasts.
+
+${statusSection}
+- Describe current service performance.
+- Discuss active vs resolved issues.
+- Mention response effectiveness and service stability.
+- No forecasts.
+- No recommendations.
+
+${trendsSection}
+- Compare categories by incident volume.
+- Identify the largest and second-largest categories.
+- Include water share percentage and power share percentage.
+- Use only observable trends from current data.
+- No forecasts.
+
+${riskSection}
+- Focus ONLY on hotspot clusters.
+- Mention hotspot counts.
+- Identify the dominant hotspot category.
+- Explain what hotspot concentration indicates.
+- Do NOT discuss citywide statistics.
+
+${actionsSection}
+- Provide concrete management actions.
+- Every recommendation must be different.
+- Recommendation 1 must address the dominant category.
+- Recommendation 2 must address hotspot zones.
+- Recommendation 3 must address service reliability or prevention.
+
+CONTENT RULES
+- Think like a city operations center.
+- Do not repeat the same sentence structure.
+- Do not repeat the same conclusion in multiple sections.
+- Avoid phrases like 'this issue must be solved' or 'special measures are required'.
+- Every bullet must contain a different insight.
+- Prefer comparisons, interpretations and measurable observations.
+- Explain the category using available statistics.
+- Explain WHAT action should be prioritized.
+- Use management language.
+- Sound like a Palantir-style operational briefing.
+- Maximum 25 words per bullet.
+- Be concise and specific.
+- Never invent locations.
+- Never invent statistics.
+- Never mention AI.
+- Never mention AI.
+- Do not use words equivalent to operational significance, escalation, strategic importance, priority pressure, or future growth.
+- Do not invent forecasts.
+- Use only facts that can be derived from the provided incident statistics.
+- Avoid abstract management language.
 
 Current incident database:
 Generate a professional municipal operations briefing.
@@ -273,7 +285,7 @@ ${JSON.stringify(incidents, null, 2)}
 
   const completion = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
-    temperature: 0.3,
+    temperature: 0.15,
     messages: [
       {
         role: "system",

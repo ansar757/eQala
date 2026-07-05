@@ -18,7 +18,7 @@ function Dashboard() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [selectedRisk, setSelectedRisk] = useState<Incident | null>(null);
   const [language, setLanguage] = useState<"ru" | "kz">("kz");
-  const [viewMode, setViewMode] = useState<"incidents" | "risk">("incidents");
+  const [viewMode, setViewMode] = useState<"incidents" | "risk" | "security">("incidents");
   const [aiReport, setAiReport] = useState("");
 
   useEffect(() => {
@@ -167,6 +167,14 @@ function Dashboard() {
               className={`px-4 py-2 text-sm ${viewMode === "risk" ? "bg-white/20" : ""}`}
             >
               {language === "ru" ? "🔥 Зоны риска" : "🔥 Қауіп аймақтары"}
+            </button>
+            <button
+              onClick={() => setViewMode("security")}
+              className={`px-4 py-2 text-sm ${viewMode === "security" ? "bg-white/20" : ""}`}
+            >
+              {language === "ru"
+                ? "🛡 Безопасность"
+                : "🛡 Қауіпсіздік"}
             </button>
             <button
               onClick={testAI}
